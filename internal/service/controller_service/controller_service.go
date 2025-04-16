@@ -99,7 +99,6 @@ func (c *ConfigControllerService) Work(ctx context.Context) error {
 		return err
 	}
 
-	//if commitTime.After(conf.LastUpdate) {
 	if commitTime.After(conf.LastUpdate) {
 		c.log.Info("Repo will be update: ", zap.String("repo", conf.ConfigName))
 

@@ -46,10 +46,22 @@ func main() {
 	service := server_service.NewServerService(dbRepo, log)
 
 	r.Post("/create_config", handlers.CreateConfigHandler(service, log, ctx))
+	r.Get("/get_configs", handlers.ListConfigHandler(service, log, ctx))
+	r.Post("/delete_config", handlers.DeleteConfigHandler(service, log, ctx))
 
 	err = http.ListenAndServe(":8081", r)
 	if err != nil {
 		panic(err)
 	}
+
+	go func() {
+		<-signalChan
+		log.Info("Start gracefull shutdown and closed db conn")
+
+		conn.Close(ctx)
+		pool.Close()
+
+		os.Exit(0)
+	}()
 
 }

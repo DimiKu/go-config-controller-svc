@@ -12,6 +12,8 @@ import (
 
 type ServerService interface {
 	CreateConfig(ctx context.Context, config entities.ServerConfig) error
+	GetConfigsList(ctx context.Context) ([]entities.ServerConfig, error)
+	DeleteConfig(ctx context.Context, config entities.ServerConfig) error
 }
 
 func CreateConfigHandler(service ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
@@ -37,7 +39,7 @@ func CreateConfigHandler(service ServerService, log *zap.Logger, ctx context.Con
 		transferConfig.ConfigBranch = config.ConfigBranch
 
 		if err := service.CreateConfig(ctx, transferConfig); err != nil {
-			http.Error(rw, err.Error(), http.StatusBadRequest)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
