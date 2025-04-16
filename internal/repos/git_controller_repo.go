@@ -40,7 +40,7 @@ func (g *GitControllerRepo) InitRepo(branch string) error {
 	_, err := os.Stat(g.localPath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			g.log.Error("Failed to stat repo: %v, with path %v", zap.Error(err), zap.String("path", g.localPath))
+			g.log.Error("Failed to stat repo", zap.Error(err), zap.String("path", g.localPath))
 			return err
 		} else {
 			_, errA := git.PlainClone(g.localPath, false, &git.CloneOptions{
@@ -80,7 +80,7 @@ func (g *GitControllerRepo) InitRepo(branch string) error {
 			Branch: branchRef,
 		})
 		if err != nil {
-			log.Fatalf("Ошибка при переключении на ветку '%s': %v", branch, err)
+			g.log.Error("Failed checkout branch", zap.String("branch", branch), zap.Error(err))
 		}
 	}
 
@@ -91,46 +91,10 @@ func (g *GitControllerRepo) InitRepo(branch string) error {
 func (g *GitControllerRepo) GetLastCommitTime() (time.Time, error) {
 	commit, err := g.repoObj.CommitObject(g.repoRef.Hash())
 	if err != nil {
-		log.Fatalf("Ошибка при получении коммита: %v", err)
+		g.log.Error("Failed to get commit time", zap.Error(err))
+		return time.Time{}, err
 	}
 
 	lastCommitTime := commit.Author.When
 	return lastCommitTime, nil
 }
-
-//func (g *GitControllerRepo) GitPull(repo *git.Repository) error {
-//	remote, err := repo.Remote("origin")
-//	if err != nil {
-//		log.Fatalf("Ошибка при получении удалённого репозитория: %v", err)
-//	}
-//
-//	fetchOptions := &git.FetchOptions{
-//		RemoteName: "origin",
-//		Auth: &http.BasicAuth{
-//			Username: g.userName,
-//			Password: g.password,
-//		},
-//	}
-//	if err := remote.Fetch(fetchOptions); err != nil && err != git.NoErrAlreadyUpToDate {
-//		log.Fatalf("Ошибка при выполнении fetch: %v", err)
-//	}
-//
-//	head, err := repo.Head()
-//	if err != nil {
-//		log.Fatalf("Ошибка при получении HEAD: %v", err)
-//	}
-//
-//	worktree, err := repo.Worktree()
-//	if err != nil {
-//		log.Fatalf("Ошибка при получении рабочей директории: %v", err)
-//	}
-//
-//	mergeOptions := &git.MergeOptions{
-//		//Strategy: 1,
-//	}
-//
-//	worktree.
-//
-//	if err := worktree.Merge(&plumbing.ReferenceName(head.Name()), mergeOptions); err != nil {
-//		log.Fatalf("Ошибка при выполнении merge: %v", err)
-//	}
