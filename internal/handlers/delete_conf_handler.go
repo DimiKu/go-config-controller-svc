@@ -28,6 +28,11 @@ func DeleteConfigHandler(service ServerService, log *zap.Logger, ctx context.Con
 			return
 		}
 
+		if err := validateConf(config); err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if err := service.DeleteConfig(ctx, entities.ServerConfig(config)); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return

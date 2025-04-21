@@ -1,10 +1,7 @@
-FROM postgres:latest
+FROM nginx:alpine
 
-ENV POSTGRES_DB=config_db
-ENV POSTGRES_USER=myuser
-ENV POSTGRES_PASSWORD=mypassword
+RUN apk add --no-cache gettext
 
-# COPY init.sql /docker-entrypoint-initdb.d/
+COPY index.html.template /usr/share/nginx/html/index.html.template
 
-EXPOSE 5432
-
+CMD ["/bin/sh", "-c", "envsubst < /usr/share/nginx/html/index.html.template > /usr/share/nginx/html/index.html && exec nginx -g 'daemon off;'"]

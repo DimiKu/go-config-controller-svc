@@ -50,8 +50,9 @@ func main() {
 	dbRepo := repos.NewAgentDBRepo(conn, pool, log)
 	fileRepo := repos.NewFileRepo("./config_test")
 	gitRepo := repos.NewGitControllerRepo("./config_test", cfg.GitUser, cfg.GitToken, cfg.GitRepo, log)
-	simpleExecutor := executors.NewPrintExec()
-	configController := controller_service.NewConfigControllerService(dbRepo, gitRepo, fileRepo, simpleExecutor, log)
+	//simpleExecutor := executors.NewPrintExec()
+	simpleNginxExecutor := executors.NewNginxExec()
+	configController := controller_service.NewConfigControllerService(dbRepo, gitRepo, fileRepo, simpleNginxExecutor, log)
 
 	ticker := time.NewTicker(time.Duration(1) * time.Second)
 	var wg sync.WaitGroup
