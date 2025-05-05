@@ -8,17 +8,12 @@ import (
 	"github.com/go-playground/validator/v10"
 	"go-config-controller-svc/dto/server_dto"
 	"go-config-controller-svc/internal/entities"
+	"go-config-controller-svc/internal/interfaces"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-type ServerService interface {
-	CreateConfig(ctx context.Context, config entities.ServerConfig) error
-	GetConfigsList(ctx context.Context) ([]entities.ServerConfig, error)
-	DeleteConfig(ctx context.Context, config entities.ServerConfig) error
-}
-
-func CreateConfigHandler(service ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
+func CreateConfigHandler(service interfaces.ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		var buf bytes.Buffer
 		var config server_dto.HTTPConfigDto

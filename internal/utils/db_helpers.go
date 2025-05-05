@@ -29,7 +29,7 @@ func isRetryable(err error) bool {
 }
 
 func RetryableQuery(ctx context.Context, pool *pgxpool.Pool, log *zap.Logger, query string, args ...interface{}) (pgx.Rows, error) {
-	var row pgx.Rows
+	var rows pgx.Rows
 	var err error
 
 	tx, err := pool.Begin(ctx)
@@ -41,7 +41,7 @@ func RetryableQuery(ctx context.Context, pool *pgxpool.Pool, log *zap.Logger, qu
 
 	for i := 0; i < 3; i++ {
 		log.Debug("Im do query: %s, time: %d", zap.String("query", query), zap.Int("i", i))
-		row, err = tx.Query(ctx, query, args...)
+		rows, err = tx.Query(ctx, query, args...)
 		if err != nil {
 			if isRetryable(err) {
 				log.Error("Retrying query due to error: %v\n", zap.Error(err))
@@ -51,7 +51,7 @@ func RetryableQuery(ctx context.Context, pool *pgxpool.Pool, log *zap.Logger, qu
 			}
 
 		}
-		return row, nil
+		return rows, nil
 	}
 	return nil, err
 }

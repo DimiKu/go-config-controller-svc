@@ -2,17 +2,18 @@ package repos
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 )
 
 type FileRepo struct {
 	localPath string
+	log       *zap.Logger
 }
 
-func NewFileRepo(localPath string) *FileRepo {
-	return &FileRepo{localPath: localPath}
+func NewFileRepo(localPath string, log *zap.Logger) *FileRepo {
+	return &FileRepo{localPath: localPath, log: log}
 }
 
 func (f *FileRepo) GetValuesFromFile(filePath string) (map[string]map[string]interface{}, error) {
@@ -27,7 +28,7 @@ func (f *FileRepo) GetValuesFromFile(filePath string) (map[string]map[string]int
 	decoder := yaml.NewDecoder(file)
 	err = decoder.Decode(&configMap)
 	if err != nil {
-		log.Fatalf("Failed to decode yaml YAML: %v", err)
+		f.log.Error("Failed to decode yaml YAML: %v", zap.Error(err))
 	}
 
 	return configMap, nil

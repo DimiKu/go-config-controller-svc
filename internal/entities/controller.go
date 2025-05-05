@@ -1,6 +1,8 @@
 package entities
 
-import "time"
+import (
+	"time"
+)
 
 type ControllerConfig struct {
 	ConfigName   string

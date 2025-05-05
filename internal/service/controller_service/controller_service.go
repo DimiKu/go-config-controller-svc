@@ -7,7 +7,6 @@ import (
 	"go-config-controller-svc/internal/custom_errors"
 	"go-config-controller-svc/internal/entities"
 	"go.uber.org/zap"
-	"sync"
 	"time"
 )
 
@@ -53,35 +52,6 @@ func NewConfigControllerService(
 		fileRepo: fileRepo,
 		log:      log,
 	}
-}
-
-func (c *ConfigControllerService) Start(ctx context.Context, workInterval int) {
-	ticker := time.NewTicker(time.Duration(workInterval) * time.Second)
-	var wg sync.WaitGroup
-
-	for i := 1; i <= 5; i++ {
-		wg.Add(1)
-
-		go func(workerID int) {
-			defer wg.Done()
-			for {
-				select {
-				case <-ctx.Done():
-					c.log.Warn("Controller stopped")
-					return
-
-				case <-ticker.C:
-					if err := c.Work(ctx); err != nil {
-						c.log.Error("Controller has error", zap.Error(err))
-					}
-				}
-			}
-		}(i)
-
-		time.Sleep(1 * time.Second)
-	}
-	wg.Wait()
-	return
 }
 
 func (c *ConfigControllerService) Work(ctx context.Context) error {

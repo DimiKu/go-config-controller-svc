@@ -3,12 +3,13 @@ package handlers
 import (
 	"context"
 	"go-config-controller-svc/dto/server_dto"
+	"go-config-controller-svc/internal/interfaces"
 	"go-config-controller-svc/internal/utils"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-func ListConfigHandler(service ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
+func ListConfigHandler(service interfaces.ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 
 		configs, err := service.GetConfigsList(ctx)
@@ -26,6 +27,6 @@ func ListConfigHandler(service ServerService, log *zap.Logger, ctx context.Conte
 		}
 
 		rw.Header().Set("Content-Type", "application/json")
-		utils.MakeConfigsResponse(rw, resConfigs)
+		utils.MakeConfigsResponse(rw, resConfigs, log)
 	}
 }

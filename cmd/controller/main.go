@@ -48,7 +48,7 @@ func main() {
 	}
 
 	dbRepo := repos.NewAgentDBRepo(conn, pool, log)
-	fileRepo := repos.NewFileRepo("./config_test")
+	fileRepo := repos.NewFileRepo("./config_test", log)
 	gitRepo := repos.NewGitControllerRepo("./config_test", cfg.GitUser, cfg.GitToken, cfg.GitRepo, log)
 	//simpleExecutor := executors.NewPrintExec()
 	simpleNginxExecutor := executors.NewNginxExec()
@@ -66,7 +66,6 @@ func main() {
 				select {
 				case <-ctx.Done():
 					log.Warn("Controller stopped")
-					return
 
 				case <-ticker.C:
 					if err := configController.Work(ctx); err != nil {
@@ -87,7 +86,7 @@ func main() {
 
 		conn.Close(ctx)
 		pool.Close()
-		ctx.Done()
+		//cancel()
 
 		os.Exit(0)
 	}()

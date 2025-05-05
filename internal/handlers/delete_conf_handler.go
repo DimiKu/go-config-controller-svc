@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"go-config-controller-svc/dto/server_dto"
 	"go-config-controller-svc/internal/entities"
+	"go-config-controller-svc/internal/interfaces"
 	"go-config-controller-svc/internal/utils"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-func DeleteConfigHandler(service ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
+func DeleteConfigHandler(service interfaces.ServerService, log *zap.Logger, ctx context.Context) func(rw http.ResponseWriter, r *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
 		var buf bytes.Buffer
 		var config server_dto.HTTPConfigDto
@@ -39,6 +40,6 @@ func DeleteConfigHandler(service ServerService, log *zap.Logger, ctx context.Con
 		}
 
 		rw.Header().Set("Content-Type", "application/json")
-		utils.MakeConfigResponse(rw, config)
+		utils.MakeConfigResponse(rw, config, log)
 	}
 }

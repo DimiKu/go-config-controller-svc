@@ -6,4 +6,6 @@ type ServerConfig struct {
 	DBPort     string `env:"DB_PORT"`
 	DBHost     string `env:"DB_HOST"`
 	DBName     string `env:"DB_NAME"`
+
+	ServerAddr string `env:"SERVER_ADDR"`
 }

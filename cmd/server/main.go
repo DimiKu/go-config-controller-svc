@@ -20,10 +20,12 @@ import (
 
 func main() {
 	log, _ := zap.NewProduction()
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	signalChan := make(chan os.Signal, 1)
+
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
 	r := chi.NewRouter()
 
 	var cfg configs.ServerConfig
@@ -45,23 +47,23 @@ func main() {
 	dbRepo := repos.NewServerDBRepo(conn, pool, log)
 	service := server_service.NewServerService(dbRepo, log)
 
-	r.Post("/create_config", handlers.CreateConfigHandler(service, log, ctx))
-	r.Get("/get_configs", handlers.ListConfigHandler(service, log, ctx))
-	r.Post("/delete_config", handlers.DeleteConfigHandler(service, log, ctx))
-
-	err = http.ListenAndServe(":8081", r)
-	if err != nil {
-		panic(err)
-	}
-
 	go func() {
 		<-signalChan
 		log.Info("Start gracefull shutdown and closed db conn")
 
 		conn.Close(ctx)
 		pool.Close()
+		cancel()
 
 		os.Exit(0)
 	}()
 
+	r.Post("/create_config", handlers.CreateConfigHandler(service, log, ctx))
+	r.Get("/get_configs", handlers.ListConfigHandler(service, log, ctx))
+	r.Post("/delete_config", handlers.DeleteConfigHandler(service, log, ctx))
+
+	err = http.ListenAndServe(cfg.ServerAddr, r)
+	if err != nil {
+		panic(err)
+	}
 }
