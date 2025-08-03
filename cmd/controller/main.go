@@ -55,7 +55,6 @@ func main() {
 	})
 
 	redisRepo := repos.NewRedisRepo(rdb, ctx, log)
-
 	dbRepo := repos.NewAgentDBRepo(conn, pool, log)
 	fileRepo := repos.NewFileRepo("./config_test", log)
 	gitRepo := repos.NewGitControllerRepo("./config_test", cfg.GitUser, cfg.GitToken, cfg.GitRepo, log)
