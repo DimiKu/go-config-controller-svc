@@ -22,3 +22,11 @@ func MakeConfigResponse(w http.ResponseWriter, conf server_dto.HTTPConfigDto, lo
 	}
 	w.Write(jsonRes)
 }
+
+func MakeTokenResponse(w http.ResponseWriter, token string, log *zap.Logger) {
+	jsonRes, err := json.Marshal(token)
+	if err != nil {
+		log.Error("can't decode response", zap.Error(err))
+	}
+	w.Write(jsonRes)
+}

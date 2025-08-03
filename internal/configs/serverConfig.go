@@ -8,4 +8,7 @@ type ServerConfig struct {
 	DBName     string `env:"DB_NAME"`
 
 	ServerAddr string `env:"SERVER_ADDR"`
+
+	RedisAddr string `env:"REDIS_ADDR"`
+	RedisDB   int    `env:"REDIS_DB"`
 }

@@ -65,3 +65,46 @@ func (s *ServerDBRepo) DeleteConfig(ctx context.Context, config entities.ServerC
 
 	return nil
 }
+
+func (s *ServerDBRepo) GetUserByUsername(ctx context.Context, username string) (entities.User, error) {
+	r, err := utils.RetryableQuery(ctx, s.pool, s.log, GetUserByName, username)
+	if err != nil {
+		s.log.Error("Failed to get user from db: ", zap.Error(err))
+		return entities.User{}, err
+	}
+
+	for r.Next() {
+		var u entities.User
+		if err := r.Scan(&u.Username, &u.Password); err != nil {
+			return entities.User{}, err
+		}
+
+		return u, nil
+	}
+
+	return entities.User{}, nil
+}
+
+func (s *ServerDBRepo) CreateUser(ctx context.Context, user entities.User) error {
+	_, err := utils.RetryableExec(ctx, s.pool, s.log, CreateUser, user.Username, user.Password)
+	if err != nil {
+		s.log.Error("Failed to create new user in db: ", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *ServerDBRepo) CheckIfUserExists(ctx context.Context, username string) (bool, error) {
+	r, err := utils.RetryableQuery(ctx, s.pool, s.log, GetUserByName, username)
+	if err != nil {
+		s.log.Error("Failed to get user from db: ", zap.Error(err))
+		return false, err
+	}
+
+	if !r.Next() {
+		return false, nil
+	}
+
+	return true, nil
+}

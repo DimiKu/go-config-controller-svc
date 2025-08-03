@@ -5,3 +5,13 @@ type ServerConfig struct {
 	ConfigValue  string
 	ConfigBranch string
 }
+
+type User struct {
+	Username string
+	Password string
+}
+
+const (
+	DoExecTask   = "DoExecTask"
+	CommandQueue = "CommandQueue"
+)

@@ -25,3 +25,12 @@ func (h *HTTPConfigDto) Validate() error {
 	}
 	return nil
 }
+
+type UserDto struct {
+	Username string `json:"username" validate:"required,min=3,max=20"`
+	Password string `json:"password" validate:"required,min=6,max=20"`
+}
+
+type TaskDto struct {
+	Task string `json:"task" validate:"required,min=1,max=20"`
+}

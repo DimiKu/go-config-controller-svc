@@ -7,8 +7,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go-config-controller-svc/internal/configs"
 	"go-config-controller-svc/internal/handlers"
+	"go-config-controller-svc/internal/middlewares"
 	"go-config-controller-svc/internal/repos"
 	"go-config-controller-svc/internal/service/server_service"
 	"go.uber.org/zap"
@@ -24,10 +26,11 @@ func main() {
 
 	signalChan := make(chan os.Signal, 1)
 
+	// TODO signal.NotifyContext()
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	r := chi.NewRouter()
-
+	r.Use(middlewares.AuthMiddleware())
 	var cfg configs.ServerConfig
 	if err := env.Parse(&cfg); err != nil {
 		log.Error("Error parse env: ", zap.Error(err))
@@ -44,8 +47,15 @@ func main() {
 		log.Error("Failed to get pool: ", zap.Error(err))
 	}
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr,
+		DB:   cfg.RedisDB,
+	})
+
+	redisRepo := repos.NewRedisRepo(rdb, ctx, log)
+
 	dbRepo := repos.NewServerDBRepo(conn, pool, log)
-	service := server_service.NewServerService(dbRepo, log)
+	service := server_service.NewServerService(dbRepo, redisRepo, log)
 
 	go func() {
 		<-signalChan
@@ -55,14 +65,18 @@ func main() {
 		pool.Close()
 		cancel()
 
-		os.Exit(0)
+		os.Exit(0) // вызывать из основной горутины
 	}()
 
+	r.Post("/login", handlers.LoginUserHandler(service, log, ctx))
+	r.Post("/create_user", handlers.CreateUserHandler(service, log, ctx))
+
+	r.Post("/execute", handlers.CreateTaskHandler(service, log, ctx))
 	r.Post("/create_config", handlers.CreateConfigHandler(service, log, ctx))
 	r.Get("/get_configs", handlers.ListConfigHandler(service, log, ctx))
 	r.Post("/delete_config", handlers.DeleteConfigHandler(service, log, ctx))
 
-	err = http.ListenAndServe(cfg.ServerAddr, r)
+	err = http.ListenAndServe(cfg.ServerAddr, r) // посмотреть метод shutdown со своим сервером
 	if err != nil {
 		panic(err)
 	}

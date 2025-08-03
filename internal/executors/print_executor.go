@@ -18,3 +18,10 @@ func (p *PrintExec) DoChangeWithNewValues(configMap map[string]map[string]interf
 	fmt.Println(execStr)
 	return nil
 }
+
+func (p *PrintExec) DoRestart() error {
+	execStr := "Do restart app"
+
+	fmt.Println(execStr)
+	return nil
+}

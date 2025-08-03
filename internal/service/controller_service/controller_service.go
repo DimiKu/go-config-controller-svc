@@ -12,6 +12,7 @@ import (
 
 type Executor interface {
 	DoChangeWithNewValues(configMap map[string]map[string]interface{}, valuesName string) error
+	DoRestart() error
 }
 
 type GitRepo interface {
@@ -30,27 +31,34 @@ type FileRepo interface {
 	GetValuesFromFile(filePath string) (map[string]map[string]interface{}, error)
 }
 
+type RedisRepo interface {
+	GetTask(queue string, ctx context.Context) (string, error)
+}
+
 type ConfigControllerService struct {
-	DBRepo   DBRepo
-	GitRepo  GitRepo
-	Executor Executor
-	fileRepo FileRepo
-	log      *zap.Logger
+	DBRepo    DBRepo
+	GitRepo   GitRepo
+	RedisRepo RedisRepo
+	Executor  Executor
+	fileRepo  FileRepo
+	log       *zap.Logger
 }
 
 func NewConfigControllerService(
 	DBRepo DBRepo,
 	gitRepo GitRepo,
 	fileRepo FileRepo,
+	RedisRepo RedisRepo,
 	executor Executor,
 	log *zap.Logger,
 ) *ConfigControllerService {
 	return &ConfigControllerService{
-		DBRepo:   DBRepo,
-		GitRepo:  gitRepo,
-		Executor: executor,
-		fileRepo: fileRepo,
-		log:      log,
+		DBRepo:    DBRepo,
+		GitRepo:   gitRepo,
+		RedisRepo: RedisRepo,
+		Executor:  executor,
+		fileRepo:  fileRepo,
+		log:       log,
 	}
 }
 
@@ -88,6 +96,21 @@ func (c *ConfigControllerService) Work(ctx context.Context) error {
 
 	if err = c.DBRepo.UnlockRepo(ctx, conf.ConfigName); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *ConfigControllerService) ExecTasks(ctx context.Context, queue string) error {
+	task, err := c.RedisRepo.GetTask(queue, ctx)
+	if err != nil {
+		return err
+	}
+
+	if task == entities.DoExecTask {
+		if err := c.Executor.DoRestart(); err != nil {
+			return err
+		}
 	}
 
 	return nil
