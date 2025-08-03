@@ -7,8 +7,10 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go-config-controller-svc/internal/configs"
 	"go-config-controller-svc/internal/custom_errors"
+	"go-config-controller-svc/internal/entities"
 	"go-config-controller-svc/internal/executors"
 	"go-config-controller-svc/internal/repos"
 	"go-config-controller-svc/internal/service/controller_service"
@@ -47,14 +49,21 @@ func main() {
 		log.Error("Failed to get pool: ", zap.Error(err))
 	}
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr,
+		DB:   cfg.RedisDB,
+	})
+
+	redisRepo := repos.NewRedisRepo(rdb, ctx, log)
 	dbRepo := repos.NewAgentDBRepo(conn, pool, log)
 	fileRepo := repos.NewFileRepo("./config_test", log)
 	gitRepo := repos.NewGitControllerRepo("./config_test", cfg.GitUser, cfg.GitToken, cfg.GitRepo, log)
-	//simpleExecutor := executors.NewPrintExec()
-	simpleNginxExecutor := executors.NewNginxExec()
-	configController := controller_service.NewConfigControllerService(dbRepo, gitRepo, fileRepo, simpleNginxExecutor, log)
+	simpleExecutor := executors.NewPrintExec()
+	//simpleNginxExecutor := executors.NewNginxExec()
+	configController := controller_service.NewConfigControllerService(dbRepo, gitRepo, fileRepo, redisRepo, simpleExecutor, log)
 
 	ticker := time.NewTicker(time.Duration(1) * time.Second)
+	taskTicker := time.NewTicker(time.Duration(1) * time.Millisecond)
 	var wg sync.WaitGroup
 
 	for i := 1; i <= cfg.Workers; i++ {
@@ -74,6 +83,25 @@ func main() {
 						} else {
 							log.Error("Controller has error: ", zap.Error(err))
 						}
+					}
+				}
+			}
+		}(i)
+	}
+
+	for i := 1; i <= cfg.Workers; i++ {
+		wg.Add(1)
+
+		go func(workerID int) {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					log.Warn("Controller stopped")
+
+				case <-taskTicker.C:
+					if err := configController.ExecTasks(ctx, entities.CommandQueue); err != nil {
+						log.Error("Controller has error: ", zap.Error(err))
 					}
 				}
 			}

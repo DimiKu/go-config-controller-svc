@@ -35,6 +35,21 @@ func (n *NginxExec) DoChangeWithNewValues(configMap map[string]map[string]interf
 	return nil
 }
 
+func (n *NginxExec) DoRestart() error {
+	execStr := "docker restart my-nginx"
+
+	cmd := exec.Command("bash", "-c", execStr)
+
+	output, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(output))
+	return nil
+
+}
+
 func (n *NginxExec) deleteExistContainer() error {
 	execStr := "docker ps | grep my-nginx | awk '{print$1}' | xargs docker rm  --force || true"
 	cmd := exec.Command("bash", "-c", execStr)

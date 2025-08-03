@@ -5,4 +5,6 @@ const (
 	GetAllConfigs   = `SELECT config_name, config_value, config_branch from configs`
 	GetCountConfigs = `SELECT count(*) from configs`
 	DeleteConfig    = "DELETE FROM configs WHERE config_name = $1 and config_branch = $2"
+	GetUserByName   = `SELECT username, password from users WHERE username = $1`
+	CreateUser      = `INSERT INTO users (username, password) VALUES ($1, $2)`
 )

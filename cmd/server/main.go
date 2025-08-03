@@ -7,8 +7,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"go-config-controller-svc/internal/configs"
 	"go-config-controller-svc/internal/handlers"
+	"go-config-controller-svc/internal/middlewares"
 	"go-config-controller-svc/internal/repos"
 	"go-config-controller-svc/internal/service/server_service"
 	"go.uber.org/zap"
@@ -24,11 +26,14 @@ func main() {
 
 	signalChan := make(chan os.Signal, 1)
 
+	// TODO signal.NotifyContext()
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	r := chi.NewRouter()
-
 	var cfg configs.ServerConfig
+
+	r.Use(middlewares.AuthMiddleware([]byte(cfg.Secret)))
+
 	if err := env.Parse(&cfg); err != nil {
 		log.Error("Error parse env: ", zap.Error(err))
 	}
@@ -44,26 +49,45 @@ func main() {
 		log.Error("Failed to get pool: ", zap.Error(err))
 	}
 
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr,
+		DB:   cfg.RedisDB,
+	})
+
+	redisRepo := repos.NewRedisRepo(rdb, ctx, log)
+
 	dbRepo := repos.NewServerDBRepo(conn, pool, log)
-	service := server_service.NewServerService(dbRepo, log)
+	service := server_service.NewServerService(dbRepo, redisRepo, log)
 
-	go func() {
-		<-signalChan
-		log.Info("Start gracefull shutdown and closed db conn")
+	r.Post("/login", handlers.LoginUserHandler(service, log, []byte(cfg.Secret), ctx))
+	r.Post("/create_user", handlers.CreateUserHandler(service, log, ctx))
 
-		conn.Close(ctx)
-		pool.Close()
-		cancel()
-
-		os.Exit(0)
-	}()
-
+	r.Post("/execute", handlers.CreateTaskHandler(service, log, ctx))
 	r.Post("/create_config", handlers.CreateConfigHandler(service, log, ctx))
 	r.Get("/get_configs", handlers.ListConfigHandler(service, log, ctx))
 	r.Post("/delete_config", handlers.DeleteConfigHandler(service, log, ctx))
 
-	err = http.ListenAndServe(cfg.ServerAddr, r)
-	if err != nil {
-		panic(err)
+	srv := &http.Server{
+		Addr:    cfg.ServerAddr,
+		Handler: r,
 	}
+
+	go func() {
+		log.Info("Server starting on: ", zap.String("addr", srv.Addr))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error("Server error: %v", zap.Error(err))
+		}
+	}()
+
+	<-signalChan
+	log.Info("Start gracefull shutdown and closed db conn")
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("Server shutdown error: %v", zap.Error(err))
+	}
+
+	log.Info("Close db connection")
+	conn.Close(ctx)
+	pool.Close()
+	cancel()
 }

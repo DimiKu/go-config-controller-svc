@@ -11,4 +11,7 @@ type ControllerConfig struct {
 	DBHost     string `env:"DB_HOST"`
 	DBName     string `env:"DB_NAME"`
 	Workers    int    `env:"WORKERS"`
+
+	RedisAddr string `env:"REDIS_ADDR"`
+	RedisDB   int    `env:"REDIS_DB"`
 }
