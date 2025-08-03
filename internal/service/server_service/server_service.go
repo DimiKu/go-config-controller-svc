@@ -74,15 +74,6 @@ func (s *ServerService) GetUser(ctx context.Context, username string) (entities.
 }
 
 func (s *ServerService) CreateUser(ctx context.Context, user entities.User) error {
-	check, err := s.DbRepo.CheckIfUserExists(ctx, user.Username)
-	if err != nil {
-		return err
-	}
-
-	if check {
-		return custom_errors.ErrUserAlreadyExist
-	}
-
 	if err := s.DbRepo.CreateUser(ctx, user); err != nil {
 		return err
 	}

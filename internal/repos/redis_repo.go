@@ -2,7 +2,6 @@ package repos
 
 import (
 	"context"
-	"fmt"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -42,7 +41,8 @@ func (repo *RedisRepo) GetTask(queue string, ctx context.Context) (string, error
 		repo.log.Error("redis LPush err: ", zap.Error(err))
 		return "", err
 	}
-	fmt.Println("Processed task:", result[1])
+
+	repo.log.Info("Processed task:", zap.String("task", result[1]))
 
 	return result[1], nil
 }

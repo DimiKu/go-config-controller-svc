@@ -30,8 +30,10 @@ func main() {
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	r := chi.NewRouter()
-	r.Use(middlewares.AuthMiddleware())
 	var cfg configs.ServerConfig
+
+	r.Use(middlewares.AuthMiddleware([]byte(cfg.Secret)))
+
 	if err := env.Parse(&cfg); err != nil {
 		log.Error("Error parse env: ", zap.Error(err))
 	}
@@ -57,18 +59,7 @@ func main() {
 	dbRepo := repos.NewServerDBRepo(conn, pool, log)
 	service := server_service.NewServerService(dbRepo, redisRepo, log)
 
-	go func() {
-		<-signalChan
-		log.Info("Start gracefull shutdown and closed db conn")
-
-		conn.Close(ctx)
-		pool.Close()
-		cancel()
-
-		os.Exit(0) // вызывать из основной горутины
-	}()
-
-	r.Post("/login", handlers.LoginUserHandler(service, log, ctx))
+	r.Post("/login", handlers.LoginUserHandler(service, log, []byte(cfg.Secret), ctx))
 	r.Post("/create_user", handlers.CreateUserHandler(service, log, ctx))
 
 	r.Post("/execute", handlers.CreateTaskHandler(service, log, ctx))
@@ -76,8 +67,27 @@ func main() {
 	r.Get("/get_configs", handlers.ListConfigHandler(service, log, ctx))
 	r.Post("/delete_config", handlers.DeleteConfigHandler(service, log, ctx))
 
-	err = http.ListenAndServe(cfg.ServerAddr, r) // посмотреть метод shutdown со своим сервером
-	if err != nil {
-		panic(err)
+	srv := &http.Server{
+		Addr:    cfg.ServerAddr,
+		Handler: r,
 	}
+
+	go func() {
+		log.Info("Server starting on: ", zap.String("addr", srv.Addr))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error("Server error: %v", zap.Error(err))
+		}
+	}()
+
+	<-signalChan
+	log.Info("Start gracefull shutdown and closed db conn")
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("Server shutdown error: %v", zap.Error(err))
+	}
+
+	log.Info("Close db connection")
+	conn.Close(ctx)
+	pool.Close()
+	cancel()
 }

@@ -34,5 +34,6 @@ func CreateTaskHandler(service interfaces.ServerService, log *zap.Logger, ctx co
 			return
 		}
 
+		rw.WriteHeader(http.StatusCreated)
 	}
 }

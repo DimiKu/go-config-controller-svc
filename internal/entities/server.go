@@ -15,3 +15,12 @@ const (
 	DoExecTask   = "DoExecTask"
 	CommandQueue = "CommandQueue"
 )
+
+var (
+	ExcludedPaths = map[string]bool{
+		"/login":       true,
+		"/create_user": true,
+	}
+
+	CheckPaths = []string{"/create_config", "/get_configs", "/delete_configs", "/execute"}
+)

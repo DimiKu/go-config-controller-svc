@@ -41,6 +41,5 @@ func CreateUserHandler(service interfaces.ServerService, log *zap.Logger, ctx co
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 	}
 }

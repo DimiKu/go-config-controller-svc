@@ -4,21 +4,16 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"go-config-controller-svc/internal/entities"
 	"go-config-controller-svc/internal/utils"
 	"net/http"
 	"strings"
 )
 
-func AuthMiddleware() func(http.Handler) http.Handler {
+func AuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-			excludedPaths := map[string]bool{
-				"/login":       true,
-				"/create_user": true,
-			}
-
-			if excludedPaths[r.URL.Path] {
+			if entities.ExcludedPaths[r.URL.Path] {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -40,7 +35,7 @@ func AuthMiddleware() func(http.Handler) http.Handler {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				}
-				return utils.SecretKey, nil
+				return secret, nil
 			})
 
 			if err != nil {

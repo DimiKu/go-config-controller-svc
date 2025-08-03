@@ -21,7 +21,7 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func CreateJWTToken(username string, endpoints []string) (string, error) {
+func CreateJWTToken(username string, endpoints []string, secret []byte) (string, error) {
 	claims := CustomClaims{
 		Username:  username,
 		Endpoints: endpoints,
@@ -33,7 +33,7 @@ func CreateJWTToken(username string, endpoints []string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	signedToken, err := token.SignedString(SecretKey)
+	signedToken, err := token.SignedString(secret)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}

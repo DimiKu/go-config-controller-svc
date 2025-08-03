@@ -11,4 +11,5 @@ type ServerConfig struct {
 
 	RedisAddr string `env:"REDIS_ADDR"`
 	RedisDB   int    `env:"REDIS_DB"`
+	Secret    string `env:"SECRET"`
 }

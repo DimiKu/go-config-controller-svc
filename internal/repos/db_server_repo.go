@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go-config-controller-svc/internal/custom_errors"
 	"go-config-controller-svc/internal/entities"
 	"go-config-controller-svc/internal/utils"
 	"go.uber.org/zap"
@@ -86,7 +87,17 @@ func (s *ServerDBRepo) GetUserByUsername(ctx context.Context, username string) (
 }
 
 func (s *ServerDBRepo) CreateUser(ctx context.Context, user entities.User) error {
-	_, err := utils.RetryableExec(ctx, s.pool, s.log, CreateUser, user.Username, user.Password)
+	r, err := utils.RetryableQuery(ctx, s.pool, s.log, GetUserByName, user.Username)
+	if err != nil {
+		s.log.Error("Failed to get user from db: ", zap.Error(err))
+		return err
+	}
+
+	if r.Next() {
+		return custom_errors.ErrUserAlreadyExist
+	}
+
+	_, err = utils.RetryableExec(ctx, s.pool, s.log, CreateUser, user.Username, user.Password)
 	if err != nil {
 		s.log.Error("Failed to create new user in db: ", zap.Error(err))
 		return err
